@@ -77,6 +77,7 @@ describe("connection", () => {
             });
 
             it("does not log content of messages sent or received by default", (done) => {
+                TestLogger.saveLogsAndReset();
                 const message = "Hello World!";
 
                 // DON'T use commonOptions because we want to specifically test the scenario where logMessageContent is not set.
@@ -109,6 +110,7 @@ describe("connection", () => {
             });
 
             it("does log content of messages sent or received when enabled", (done) => {
+                TestLogger.saveLogsAndReset();
                 const message = "Hello World!";
 
                 // DON'T use commonOptions because we want to specifically test the scenario where logMessageContent is set to true (even if commonOptions changes).

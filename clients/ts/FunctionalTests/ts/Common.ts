@@ -4,13 +4,14 @@
 import { HttpTransportType, IHubProtocol, JsonHubProtocol } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-export const ECHOENDPOINT_URL = "http://" + document.location.host + "/echo";
+export const BASE_URL = "/signalr";
+export const ECHOENDPOINT_URL = BASE_URL + "/echo";
 
 export function getHttpTransportTypes(): HttpTransportType[] {
     const transportTypes = [];
-    if (typeof WebSocket !== "undefined") {
-        transportTypes.push(HttpTransportType.WebSockets);
-    }
+    // if (typeof WebSocket !== "undefined") {
+    //     transportTypes.push(HttpTransportType.WebSockets);
+    // }
     if (typeof EventSource !== "undefined") {
         transportTypes.push(HttpTransportType.ServerSentEvents);
     }

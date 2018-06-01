@@ -48,7 +48,7 @@ class WebDriverReporter implements jasmine.CustomReporter {
 
     public specDone(result: jasmine.CustomReporterResult): void {
         this.concurrentSpecCount -= 1;
-        const testLog = TestLogger.saveLogsAndReset(result.fullName);
+        const testLog = TestLogger.saveLogsAndReset();
         if (result.status === "disabled") {
             return;
         } else if (result.status === "failed") {

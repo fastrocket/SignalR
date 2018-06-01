@@ -4,11 +4,11 @@
 import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, HubConnectionBuilder, IHttpConnectionOptions, IStreamSubscriber, JsonHubProtocol, LogLevel } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-import { eachTransport, eachTransportAndProtocol } from "./Common";
+import { BASE_URL, eachTransport, eachTransportAndProtocol } from "./Common";
 import { TestLogger } from "./TestLogger";
 
-const TESTHUBENDPOINT_URL = "/testhub";
-const TESTHUB_NOWEBSOCKETS_ENDPOINT_URL = "/testhub-nowebsockets";
+const TESTHUBENDPOINT_URL = BASE_URL + "/testhub";
+const TESTHUB_NOWEBSOCKETS_ENDPOINT_URL = BASE_URL + "/testhub-nowebsockets";
 
 // On slower CI machines, these tests sometimes take longer than 5s
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 10 * 1000;
@@ -345,7 +345,7 @@ describe("hubConnection", () => {
             });
 
             it("closed with error if hub cannot be created", (done) => {
-                const hubConnection = getConnectionBuilder(transportType, "http://" + document.location.host + "/uncreatable")
+                const hubConnection = getConnectionBuilder(transportType, BASE_URL + "/uncreatable")
                     .withHubProtocol(protocol)
                     .build();
 
