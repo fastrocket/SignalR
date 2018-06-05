@@ -35,7 +35,7 @@
     "build:tsc": "node ../node_modules/typescript/bin/tsc --project ./tsconfig.json",
     "build:rollup": "node ../node_modules/rollup/bin/rollup -c",
     "pretest": "npm run build",
-    "test": "npm run test:local",
+    "test": "npm run test:local --",
     "test:local": "ts-node --project ./scripts/tsconfig.json ./scripts/run-tests.ts",
     "test:sauce": "ts-node --project ./scripts/tsconfig.json ./scripts/run-tests.ts --sauce"
   },

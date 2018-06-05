@@ -98,7 +98,7 @@ const configFile = sauce ?
     path.resolve(__dirname, "karma.local.conf.js");
 debug(`Loading Karma config file: ${configFile}`);
 
-const config = karma.config.parseConfig(configFile);
+const config = (karma as any).config.parseConfig(configFile);
 
 function startKarmaServer() {
     return new Promise<number>((resolve, reject) => {
@@ -142,9 +142,26 @@ function startKarmaServer() {
 
 function stopKarmaServer(port: number) {
     return new Promise<number>((resolve, reject) => {
-        karma.stopper.stop({port}, (exitCode) => {
+        karma.stopper.stop({ port }, (exitCode) => {
             resolve(exitCode);
         });
+    });
+}
+
+function runKarmaTests(options: any) {
+    return new Promise<number>((resolve, reject) => {
+        karma.runner.run(options, (exitCode) => {
+            resolve(exitCode);
+        });
+    });
+}
+
+process.stdin.setRawMode(true);
+process.stdin.resume();
+
+function waitForAnyKey() {
+    return new Promise((resolve, reject) => {
+        process.stdin.once("data", resolve);
     });
 }
 
@@ -156,11 +173,16 @@ function stopKarmaServer(port: number) {
         const dotnet = spawn("dotnet", [serverPath], {
             env: {
                 ...process.env,
-                ["ASPNETCORE_URLS"]: "http://127.0.0.1:0"
+                ["ASPNETCORE_URLS"]: "http://127.0.0.1:0",
             },
         });
 
+        let port: number;
         function cleanup() {
+            if (port) {
+                stopKarmaServer(port);
+            }
+
             if (dotnet && !dotnet.killed) {
                 console.log("Terminating dotnet process");
                 dotnet.kill();
@@ -177,11 +199,21 @@ function stopKarmaServer(port: number) {
         debug(`Using SignalR Server: ${results[1]}`);
 
         // Start karma server
-        const port = await startKarmaServer();
+        port = await startKarmaServer();
         debug("Karma is ready to run.");
 
+        // Run the tests
+        let exitCode = await runKarmaTests({
+            clientArgs: ["--server", results[1]],
+            port,
+        });
+        debug(`Karma run exited with code: ${exitCode}`);
+        if (exitCode !== 0) {
+            throw new Error("Test run failed!");
+        }
+
         // Stop karma server
-        const exitCode = await stopKarmaServer(port);
+        exitCode = await stopKarmaServer(port);
         debug(`Karma server exited with code: ${exitCode}`);
     } catch (e) {
         console.error(`Error: ${e}`);

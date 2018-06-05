@@ -7,9 +7,22 @@ import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 export let BASE_URL: string;
 
 if ((window as any).__karma__) {
+    const args = (window as any).__karma__.config.args as string[];
+    let server: string;
+
+    for (let i = 0; i < args.length; i += 1) {
+        switch (args[i]) {
+            case "--server":
+                i += 1;
+                server = args[i];
+                break;
+        }
+    }
+
     // Running in Karma? Need to use an absolute URL
     // TODO: Configurable?
-    BASE_URL = "http://localhost:9000";
+    BASE_URL = server;
+    console.log(`Using SignalR Server: ${BASE_URL}`);
 } else {
     BASE_URL = "";
 }
