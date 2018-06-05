@@ -4,14 +4,23 @@
 import { HttpTransportType, IHubProtocol, JsonHubProtocol } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-export const BASE_URL = "/signalr";
+export let BASE_URL: string;
+
+if ((window as any).__karma__) {
+    // Running in Karma? Need to use an absolute URL
+    // TODO: Configurable?
+    BASE_URL = "http://localhost:9000";
+} else {
+    BASE_URL = "";
+}
+
 export const ECHOENDPOINT_URL = BASE_URL + "/echo";
 
 export function getHttpTransportTypes(): HttpTransportType[] {
     const transportTypes = [];
-    // if (typeof WebSocket !== "undefined") {
-    //     transportTypes.push(HttpTransportType.WebSockets);
-    // }
+    if (typeof WebSocket !== "undefined") {
+        transportTypes.push(HttpTransportType.WebSockets);
+    }
     if (typeof EventSource !== "undefined") {
         transportTypes.push(HttpTransportType.ServerSentEvents);
     }

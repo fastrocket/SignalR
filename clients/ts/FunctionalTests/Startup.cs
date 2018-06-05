@@ -36,6 +36,8 @@ namespace FunctionalTests
                 })
                 .AddMessagePackProtocol();
 
+            services.AddCors();
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>
@@ -83,6 +85,15 @@ namespace FunctionalTests
             }
 
             app.UseFileServer();
+
+            app.UseCors(policyBuilder =>
+            {
+                policyBuilder.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            });
+
             app.UseConnections(routes =>
             {
                 routes.MapConnectionHandler<EchoConnectionHandler>("/echo");

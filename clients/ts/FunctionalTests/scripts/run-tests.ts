@@ -1,10 +1,9 @@
 import { ChildProcess, spawn } from "child_process";
-import * as fs from "fs";
 import { EOL } from "os";
-import * as path from "path";
-import { PassThrough, Readable } from "stream";
+import { Readable } from "stream";
 
-import { run } from "../../webdriver-tap-runner/lib";
+import * as karma from "karma";
+import * as path from "path";
 
 import * as _debug from "debug";
 const debug = _debug("signalr-functional-tests:run");
@@ -70,8 +69,8 @@ function waitForMatch(command: string, process: ChildProcess, regex: RegExp): Pr
 }
 
 let configuration = "Debug";
-let chromePath: string;
 let spec: string;
+let sauce: boolean;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -83,19 +82,70 @@ for (let i = 2; i < process.argv.length; i += 1) {
         case "--verbose":
             _debug.enable("signalr-functional-tests:*");
             break;
-        case "--chrome":
-            i += 1;
-            chromePath = process.argv[i];
-            break;
         case "--spec":
             i += 1;
             spec = process.argv[i];
             break;
+        case "--sauce":
+            sauce = true;
+            console.log("Running on SauceLabs.");
+            break;
     }
 }
 
-if (chromePath) {
-    debug(`Using Google Chrome at: '${chromePath}'`);
+const configFile = sauce ?
+    path.resolve(__dirname, "karma.sauce.conf.js") :
+    path.resolve(__dirname, "karma.local.conf.js");
+debug(`Loading Karma config file: ${configFile}`);
+
+const config = karma.config.parseConfig(configFile);
+
+function startKarmaServer() {
+    return new Promise<number>((resolve, reject) => {
+        let browsersReady = false;
+        let karmaPort;
+
+        const server = new karma.Server(config);
+        server.on("listening", (port) => {
+            debug(`Karma server listening on port ${port}`);
+            karmaPort = port;
+
+            if (browsersReady && karmaPort) {
+                resolve(karmaPort);
+            }
+        });
+        server.on("browsers_ready", () => {
+            browsersReady = true;
+
+            if (browsersReady && karmaPort) {
+                resolve(karmaPort);
+            }
+        });
+        server.on("browser_register", (browser) => {
+            debug(`Browser ${browser} registered.`);
+        });
+        server.on("browser_start", (browser) => {
+            debug(`Browser ${browser} started.`);
+        });
+        server.on("browser_complete", (browser) => {
+            debug(`Browser ${browser} completed.`);
+        });
+        server.on("run_complete", (browser) => {
+            debug("Run completed.");
+        });
+        server.on("browser_error", (browser, error) => {
+            reject(`Browser ${browser} error: ${error}.`);
+        });
+        server.start();
+    });
+}
+
+function stopKarmaServer(port: number) {
+    return new Promise<number>((resolve, reject) => {
+        karma.stopper.stop({port}, (exitCode) => {
+            resolve(exitCode);
+        });
+    });
 }
 
 (async () => {
@@ -124,23 +174,19 @@ if (chromePath) {
         const results = await waitForMatch("dotnet", dotnet, /Now listening on: (http:\/\/[^\/]+:[\d]+)/);
         debug(`Functional Test Server has started at ${results[1]}`);
 
-        let url = results[1] + "?cacheBust=true";
-        if (spec) {
-            url += `&spec=${encodeURI(spec)}`;
-        }
+        debug(`Using SignalR Server: ${results[1]}`);
 
-        debug(`Using server url: ${url}`);
+        // Start karma server
+        const port = await startKarmaServer();
+        debug("Karma is ready to run.");
 
-        const failureCount = await run("SignalR Browser Functional Tests", {
-            browser: "chrome",
-            chromeBinaryPath: chromePath,
-            output: process.stdout,
-            url,
-            webdriverPort: 9515,
-        });
-        process.exit(failureCount);
+        // Stop karma server
+        const exitCode = await stopKarmaServer(port);
+        debug(`Karma server exited with code: ${exitCode}`);
     } catch (e) {
-        console.error("Error: " + e.toString());
+        console.error(`Error: ${e}`);
         process.exit(1);
     }
+
+    process.exit(0);
 })();
