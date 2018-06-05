@@ -21,7 +21,7 @@ setTimeout(() => {
 
 function waitForMatch(command: string, process: ChildProcess, regex: RegExp): Promise<RegExpMatchArray> {
     return new Promise<RegExpMatchArray>((resolve, reject) => {
-        const commandDebug = _debug(`signalr-functional-tests:${command}`);
+        const commandDebug = _debug(`${command}`);
         try {
             let lastLine = "";
 
@@ -82,6 +82,10 @@ for (let i = 2; i < process.argv.length; i += 1) {
         case "--verbose":
             _debug.enable("signalr-functional-tests:*");
             break;
+        case "-vv":
+        case "--very-verbose":
+            _debug.enable("*");
+            break;
         case "--spec":
             i += 1;
             spec = process.argv[i];
@@ -140,28 +144,11 @@ function startKarmaServer() {
     });
 }
 
-function stopKarmaServer(port: number) {
-    return new Promise<number>((resolve, reject) => {
-        karma.stopper.stop({ port }, (exitCode) => {
-            resolve(exitCode);
-        });
-    });
-}
-
 function runKarmaTests(options: any) {
     return new Promise<number>((resolve, reject) => {
         karma.runner.run(options, (exitCode) => {
             resolve(exitCode);
         });
-    });
-}
-
-process.stdin.setRawMode(true);
-process.stdin.resume();
-
-function waitForAnyKey() {
-    return new Promise((resolve, reject) => {
-        process.stdin.once("data", resolve);
     });
 }
 
@@ -177,12 +164,7 @@ function waitForAnyKey() {
             },
         });
 
-        let port: number;
         function cleanup() {
-            if (port) {
-                stopKarmaServer(port);
-            }
-
             if (dotnet && !dotnet.killed) {
                 console.log("Terminating dotnet process");
                 dotnet.kill();
@@ -199,11 +181,11 @@ function waitForAnyKey() {
         debug(`Using SignalR Server: ${results[1]}`);
 
         // Start karma server
-        port = await startKarmaServer();
+        const port = await startKarmaServer();
         debug("Karma is ready to run.");
 
         // Run the tests
-        let exitCode = await runKarmaTests({
+        const exitCode = await runKarmaTests({
             clientArgs: ["--server", results[1]],
             port,
         });
@@ -211,12 +193,8 @@ function waitForAnyKey() {
         if (exitCode !== 0) {
             throw new Error("Test run failed!");
         }
-
-        // Stop karma server
-        exitCode = await stopKarmaServer(port);
-        debug(`Karma server exited with code: ${exitCode}`);
     } catch (e) {
-        console.error(`Error: ${e}`);
+        console.error(e);
         process.exit(1);
     }
 
