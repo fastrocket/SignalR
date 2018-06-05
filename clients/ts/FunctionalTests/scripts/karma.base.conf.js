@@ -1,5 +1,11 @@
 const path = require("path");
 
+let defaultReporters = ["progress", "summary"];
+
+if (process.env.TEAMCITY_VERSION) {
+  defaultReporters.push("teamcity");
+}
+
 /** Creates the Karma config function based on the provided options
  *
  * @param {object} config Configuration options to override on/add to the base config.
@@ -11,7 +17,6 @@ function createKarmaConfig(config) {
             frameworks: ["jasmine"],
             files: [
                 "wwwroot/lib/msgpack5/msgpack5.js",
-                "wwwroot/lib/signalr/msgpack5.js",
                 "node_modules/@aspnet/signalr/dist/browser/signalr.js",
                 "node_modules/@aspnet/signalr-protocol-msgpack/dist/browser/signalr-protocol-msgpack.js",
                 "wwwroot/dist/signalr-functional-tests.js"
@@ -19,7 +24,6 @@ function createKarmaConfig(config) {
             preprocessors: {
                 "**/*.js": ["sourcemap"]
             },
-            reporters: ["progress"],
             port: 9876,
             colors: true,
             logLevel: config.LOG_INFO,
@@ -34,8 +38,17 @@ function createKarmaConfig(config) {
                 terminal: false
             },
 
+            // Increase some timeouts that are a little aggressive when multiple browsers (or SauceLabs) are in play.
+            browserDisconnectTimeout: 10000, // default 2000
+            browserDisconnectTolerance: 1, // default 0
+            browserNoActivityTimeout: 4 * 60 * 1000, //default 10000
+            captureTimeout: 4 * 60 * 1000, //default 60000
+
             // Override/add values using the passed-in config.
             ...config,
+
+            // Apply the default reporters along with whatever was passed in
+            reporters: [...defaultReporters, ...(config.reporters || [])],
         });
     }
 }

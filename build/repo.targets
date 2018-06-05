@@ -19,7 +19,6 @@
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/signalr" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/signalr-protocol-msgpack" />
-    <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/webdriver-tap-runner" />
   </Target>
 
   <PropertyGroup>

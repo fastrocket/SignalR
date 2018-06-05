@@ -70,7 +70,8 @@ function waitForMatch(command: string, process: ChildProcess, regex: RegExp): Pr
 
 let configuration = "Debug";
 let spec: string;
-let sauce: boolean;
+let sauce = false;
+let allBrowsers = false;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -94,6 +95,10 @@ for (let i = 2; i < process.argv.length; i += 1) {
             sauce = true;
             console.log("Running on SauceLabs.");
             break;
+        case "-a":
+        case "--all":
+            allBrowsers = true;
+            break;
     }
 }
 
@@ -102,53 +107,36 @@ const configFile = sauce ?
     path.resolve(__dirname, "karma.local.conf.js");
 debug(`Loading Karma config file: ${configFile}`);
 
+// Gross but it works
+process.env.ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS = allBrowsers ? "true" : null;
 const config = (karma as any).config.parseConfig(configFile);
 
-function startKarmaServer() {
-    return new Promise<number>((resolve, reject) => {
-        let browsersReady = false;
-        let karmaPort;
+if (sauce) {
+    let failed = false;
 
-        const server = new karma.Server(config);
-        server.on("listening", (port) => {
-            debug(`Karma server listening on port ${port}`);
-            karmaPort = port;
+    if (!process.env.SAUCE_USERNAME) {
+        failed = true;
+        console.error("Required environment variable 'SAUCE_USERNAME' is missing!");
+    }
 
-            if (browsersReady && karmaPort) {
-                resolve(karmaPort);
-            }
-        });
-        server.on("browsers_ready", () => {
-            browsersReady = true;
+    if (!process.env.SAUCE_ACCESS_KEY) {
+        failed = true;
+        console.error("Required environment variable 'SAUCE_ACCESS_KEY' is missing!");
+        process.exit(1);
+    }
 
-            if (browsersReady && karmaPort) {
-                resolve(karmaPort);
-            }
-        });
-        server.on("browser_register", (browser) => {
-            debug(`Browser ${browser} registered.`);
-        });
-        server.on("browser_start", (browser) => {
-            debug(`Browser ${browser} started.`);
-        });
-        server.on("browser_complete", (browser) => {
-            debug(`Browser ${browser} completed.`);
-        });
-        server.on("run_complete", (browser) => {
-            debug("Run completed.");
-        });
-        server.on("browser_error", (browser, error) => {
-            reject(`Browser ${browser} error: ${error}.`);
-        });
-        server.start();
-    });
+    if (failed) {
+        process.exit(1);
+    }
 }
 
-function runKarmaTests(options: any) {
-    return new Promise<number>((resolve, reject) => {
-        karma.runner.run(options, (exitCode) => {
-            resolve(exitCode);
+function runKarma(karmaConfig) {
+    return new Promise<karma.TestResults>((resolve, reject) => {
+        const server = new karma.Server(karmaConfig);
+        server.on("run_complete", (browsers, results) => {
+            return resolve(results);
         });
+        server.start();
     });
 }
 
@@ -157,10 +145,18 @@ function runKarmaTests(options: any) {
         const serverPath = path.resolve(__dirname, "..", "bin", configuration, "netcoreapp2.2", "FunctionalTests.dll");
 
         debug(`Launching Functional Test Server: ${serverPath}`);
+        let desiredServerUrl = "http://127.0.0.1:0";
+
+        if (sauce) {
+            // SauceLabs can only proxy certain ports for Edge and Safari.
+            // https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy+FAQS
+            desiredServerUrl = "http://127.0.0.1:9000";
+        }
+
         const dotnet = spawn("dotnet", [serverPath], {
             env: {
                 ...process.env,
-                ["ASPNETCORE_URLS"]: "http://127.0.0.1:0",
+                ["ASPNETCORE_URLS"]: desiredServerUrl,
             },
         });
 
@@ -175,28 +171,22 @@ function runKarmaTests(options: any) {
         process.on("exit", cleanup);
 
         debug("Waiting for Functional Test Server to start");
-        const results = await waitForMatch("dotnet", dotnet, /Now listening on: (http:\/\/[^\/]+:[\d]+)/);
-        debug(`Functional Test Server has started at ${results[1]}`);
+        const matches = await waitForMatch("dotnet", dotnet, /Now listening on: (http:\/\/[^\/]+:[\d]+)/);
+        const url = matches[1];
+        debug(`Functional Test Server has started at ${url}`);
 
-        debug(`Using SignalR Server: ${results[1]}`);
+        debug(`Using SignalR Server: ${url}`);
 
         // Start karma server
-        const port = await startKarmaServer();
-        debug("Karma is ready to run.");
-
-        // Run the tests
-        const exitCode = await runKarmaTests({
-            clientArgs: ["--server", results[1]],
-            port,
-        });
-        debug(`Karma run exited with code: ${exitCode}`);
-        if (exitCode !== 0) {
-            throw new Error("Test run failed!");
-        }
+        const conf = {
+            ...config,
+            singleRun: true,
+        };
+        conf.client.args = ["--server", url];
+        const results = await runKarma(conf);
+        process.exit(results.exitCode);
     } catch (e) {
         console.error(e);
         process.exit(1);
     }
-
-    process.exit(0);
 })();
