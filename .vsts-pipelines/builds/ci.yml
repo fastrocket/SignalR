@@ -26,6 +26,10 @@ phases:
   steps:
   - checkout: self
     clean: true
+  - task: NodeTool@0
+    displayName: Use Node 8.x
+    inputs:
+      versionSpec: 8.x
   - script: ./build.sh -ci
     displayName: Run build.sh
   - task: PublishTestResults@2
@@ -40,6 +44,10 @@ phases:
   steps:
   - checkout: self
     clean: true
+  - task: NodeTool@0
+    displayName: Use Node 8.x
+    inputs:
+      versionSpec: 8.x
   - script: ./build.sh -ci
     displayName: Run build.sh
   - task: PublishTestResults@2
