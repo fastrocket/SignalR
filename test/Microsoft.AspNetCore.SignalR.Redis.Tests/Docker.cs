@@ -30,13 +30,26 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         private static Docker Create()
         {
             // Currently Windows Server 2016 doesn't support linux containers which redis is.
-            if (string.Equals("True", Environment.GetEnvironmentVariable("APPVEYOR"), StringComparison.OrdinalIgnoreCase))
+            //if (string.Equals("True", Environment.GetEnvironmentVariable("APPVEYOR"), StringComparison.OrdinalIgnoreCase))
+            //{
+            //    return null;
+            //}
+
+            var location = GetDockerLocation();
+            if (location == null)
             {
                 return null;
             }
 
-            var location = GetDockerLocation();
-            return location == null ? null : new Docker(location);
+            var docker = new Docker(location);
+            docker.RunCommand("-D info --format {{.Experimental}}", out var output);
+            Console.WriteLine($"docker info output: {output}");
+            if (output == "false")
+            {
+                return null;
+            }
+
+            return docker;
         }
 
         private static string GetDockerLocation()
