@@ -124,11 +124,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.OutputDataReceived += (_, a) =>
             {
                 LogIfNotNull(logger.LogInformation, "stdout: {0}", a.Data);
+                Console.WriteLine($"stdout: {a.Data}");
                 lines.Enqueue(a.Data);
             };
             process.ErrorDataReceived += (_, a) =>
             {
                 LogIfNotNull(logger.LogError, "stderr: {0}", a.Data);
+                Console.WriteLine($"stderr: {a.Data}");
                 lines.Enqueue(a.Data);
             };
 
@@ -141,6 +143,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 process.Close();
                 logger.LogError("Closing process '{processName}' because it is running longer than the configured timeout.", fileName);
+                Console.WriteLine($"Closing process '{fileName}' because it is running longer than the configured timeout.");
             }
 
             // Need to WaitForExit without a timeout to guarantee the output stream has written everything
