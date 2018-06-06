@@ -8,12 +8,12 @@ phases:
   steps:
   - checkout: self
     clean: true
-  - script: .\build.cmd -ci
-    displayName: Run build.cmd
   - task: NodeTool@0
     displayName: Use Node 8.x
     inputs:
       versionSpec: 8.x
+  - script: .\build.cmd -ci
+    displayName: Run build.cmd
   - task: PublishTestResults@2
     displayName: Publish test results
     condition: always()
