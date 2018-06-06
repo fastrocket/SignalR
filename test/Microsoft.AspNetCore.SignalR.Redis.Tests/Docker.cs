@@ -76,7 +76,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
             // use redis base docker image
             // 20 second timeout to allow redis image to be downloaded, should be a rare occurance, only happening when a new version is released
-            RunProcessAndThrowIfFailed(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger, TimeSpan.FromSeconds(20));
+            RunProcessAndThrowIfFailed(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger, TimeSpan.FromSeconds(30));
+            RunProcess(_path, $"container ls", logger, TimeSpan.FromSeconds(5), out output);
         }
 
         public void Stop(ILogger logger)
@@ -150,7 +151,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.WaitForExit();
 
             output = string.Join(Environment.NewLine, lines);
-
+            Console.WriteLine(output);
             return exitCode;
         }
 
