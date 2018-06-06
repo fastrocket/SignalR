@@ -29,12 +29,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         private static Docker Create()
         {
-            // Currently Windows Server 2016 doesn't support linux containers which redis is.
-            //if (string.Equals("True", Environment.GetEnvironmentVariable("APPVEYOR"), StringComparison.OrdinalIgnoreCase))
-            //{
-            //    return null;
-            //}
-
             var location = GetDockerLocation();
             if (location == null)
             {
@@ -43,11 +37,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             var docker = new Docker(location);
 
+            // Windows docker must have Experimental features turned on to run linux containers, if they don't skip the docker tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 docker.RunCommand("info --format '{{.ExperimentalBuild}}'", out var output);
-                Console.WriteLine($"docker info output: {output}");
-                if (output == "'false'")
+                if (string.Equals(output, "'false'"))
                 {
                     return null;
                 }
@@ -147,6 +141,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 process.Close();
                 logger.LogError("Closing process '{processName}' because it is running longer than the configured timeout.", fileName);
             }
+
+            // Need to WaitForExit without a timeout to guarantee the output stream has written everything
+            process.WaitForExit();
 
             output = string.Join(Environment.NewLine, lines);
 
