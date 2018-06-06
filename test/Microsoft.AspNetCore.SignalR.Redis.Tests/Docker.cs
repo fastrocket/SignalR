@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 docker.RunCommand("info --format '{{.ExperimentalBuild}}'", out var output);
                 Console.WriteLine($"docker info output: {output}");
-                if (output == "false")
+                if (output == "'false'")
                 {
                     return null;
                 }
