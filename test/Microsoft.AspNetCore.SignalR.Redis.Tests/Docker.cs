@@ -40,9 +40,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // Windows docker must have Experimental features turned on to run linux containers, if they don't skip the docker tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                docker.RunCommand("info --format '{{.ExperimentalBuild}}'", out var output);
+                docker.RunCommand("info --format '{{.OSType}}'", out var output);
                 Console.WriteLine($"docker info output: {output}");
-                if (string.Equals(output, "'false'"))
+                if (!string.Equals(output, "linux"))
                 {
                     return null;
                 }
