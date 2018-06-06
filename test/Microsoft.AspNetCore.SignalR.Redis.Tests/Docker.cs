@@ -41,6 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 docker.RunCommand("info --format '{{.ExperimentalBuild}}'", out var output);
+                Console.WriteLine($"docker info output: {output}");
                 if (string.Equals(output, "'false'"))
                 {
                     return null;
