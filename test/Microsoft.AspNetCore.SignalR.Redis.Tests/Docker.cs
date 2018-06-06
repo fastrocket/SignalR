@@ -42,11 +42,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
 
             var docker = new Docker(location);
-            docker.RunCommand("-D info --format {{.Experimental}}", out var output);
-            Console.WriteLine($"docker info output: {output}");
-            if (output == "false")
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return null;
+                docker.RunCommand("info --format '{{.ExperimentalBuild}}'", out var output);
+                Console.WriteLine($"docker info output: {output}");
+                if (output == "false")
+                {
+                    return null;
+                }
             }
 
             return docker;
