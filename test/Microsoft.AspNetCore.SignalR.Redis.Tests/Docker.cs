@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // 20 second timeout to allow redis image to be downloaded, should be a rare occurance, only happening when a new version is released
             RunProcessAndThrowIfFailed(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger, TimeSpan.FromSeconds(30));
 
-            RunProcess(_path, $"inspect --format '{{{{range .NetworkSettings.Networks}}}}{{{{.IPAddress}}}}{{{{end}}}}' {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out output);
+            RunProcess(_path, "inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' " + _dockerContainerName, logger, TimeSpan.FromSeconds(5), out output);
             Environment.SetEnvironmentVariable("REDIS_CONNECTION", $"{output}:6379");
         }
 
